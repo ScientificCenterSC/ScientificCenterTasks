@@ -354,14 +354,22 @@
             if (activeNav) activeNav.classList.add('active');
         }
 
-        // Fetch wrapper to handle CORS nicely
         async function apiPost(payload) {
-            const res = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            return await res.json();
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(data.status === 'error' || data.success === false) {
+                    alert("Server Error: " + data.message);
+                }
+                return data;
+            } catch (error) {
+                alert("Network Error: Make sure you deployed the new Apps Script version! " + error.message);
+                return { status: "error" };
+            }
         }
 
         // ================== LOGIN SYSTEM ==================
