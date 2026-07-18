@@ -525,8 +525,8 @@
         // ================== LOGIN SYSTEM ==================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
+            const u = document.getElementById('username').value.trim().toLowerCase();
+            const p = document.getElementById('password').value.trim().toLowerCase();
             
             if (u === 'student' && p === 'student') {
                 currentUserRole = 'student';
