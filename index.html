@@ -216,11 +216,6 @@
                                 <label>Session Number</label>
                                 <select id="upSessionName" required>
                                     <option value="">Select session</option>
-                                    <option value="Session 1">Session 1</option>
-                                    <option value="Session 2">Session 2</option>
-                                    <option value="Session 3">Session 3</option>
-                                    <option value="Session 4">Session 4</option>
-                                    <option value="Session 5">Session 5</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -296,12 +291,12 @@
                                 <select id="matCourse" onchange="populateMatGroups()" required></select>
                             </div>
                             <div class="form-group">
-                                <label>File Title/Name</label>
-                                <input type="text" id="matTitle" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Select File</label>
-                                <input type="file" id="matFile" required>
+                                <label>Select Files (Multiple Allowed)</label>
+                                <div class="file-upload-wrapper">
+                                    <input type="file" id="matFile" multiple required>
+                                    <label for="matFile" class="custom-file-btn"><i class="fa-solid fa-paperclip"></i> Choose Files</label>
+                                </div>
+                                <ul id="matFileList" class="file-list"></ul>
                             </div>
                             <div class="form-group">
                                 <label>Permissions (Select Groups)</label>
@@ -335,7 +330,7 @@
 
     <script>
         // REPLACE WITH DEPLOYED APPS SCRIPT URL
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymRL1kF7QuQpRbQp_kgYyqXpJ0Dk_lzXuF2cnEC7J2RfiulqImpccuCNorMFL0SOG0/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTDnMm6K20_wnpEaGJLyOCaWwMmuStXaAziC_X2c5c1dARaK8x6MDmdroXOpX_7iiz/exec";
         
         let currentUserRole = null;
         let globalData = { courses: [], groups: [], materials: [], permissions: [], tracking: [] };
@@ -434,6 +429,16 @@
             const groups = globalData.groups.filter(g => g['Course'] === cName);
             const select = document.getElementById('upGroupSelect');
             select.innerHTML = '<option value="">Select Group...</option>' + groups.map(g => `<option value="${g['Group Code']}">${g['Group Code']}</option>`).join('');
+            
+            // Populate sessions dynamically based on the selected course
+            const courseObj = globalData.courses.find(c => c['Name'] === cName);
+            const numSessions = courseObj ? parseInt(courseObj['Number of Sessions']) || 0 : 0;
+            const sessionSelect = document.getElementById('upSessionName');
+            let sessionHtml = '<option value="">Select session</option>';
+            for(let i=1; i<=numSessions; i++) {
+                sessionHtml += `<option value="Session ${i}">Session ${i}</option>`;
+            }
+            sessionSelect.innerHTML = sessionHtml;
         }
 
         function loadStudentData() {
@@ -528,27 +533,40 @@
             document.getElementById('matGroupCheckboxes').innerHTML = groups.map(g => `<label class="checkbox-item"><input type="checkbox" value="${g['Group Code']}"> ${g['Group Code']}</label>`).join('');
         }
 
+        // Show selected material files
+        const matFile = document.getElementById('matFile');
+        matFile.addEventListener('change', () => { document.getElementById('matFileList').innerHTML = Array.from(matFile.files).map(f => `<li>${f.name}</li>`).join(''); });
+
         async function uploadMaterial(e) {
             e.preventDefault();
-            const fileInput = document.getElementById('matFile');
-            if (!fileInput.files.length) return;
-            const file = fileInput.files[0];
-            const base64 = await getBase64(file);
+            if (!matFile.files.length) return;
+            
+            const btn = document.getElementById('matSubmitBtn'); btn.disabled = true; btn.innerText = "Uploading...";
+            
             const checkboxes = document.querySelectorAll('#matGroupCheckboxes input:checked');
             const groups = Array.from(checkboxes).map(cb => cb.value);
 
-            const btn = document.getElementById('matSubmitBtn'); btn.disabled = true; btn.innerText = "Uploading...";
-            
-            await apiPost({
-                action: 'uploadMaterial',
-                data: {
-                    courseName: document.getElementById('matCourse').value,
-                    title: document.getElementById('matTitle').value,
-                    groups: groups,
-                    file: { filename: file.name, mimeType: file.type || "application/octet-stream", base64: base64 }
-                }
-            });
-            e.target.reset(); toggleForm('materialForm'); await fetchData();
+            try {
+                const filesData = await Promise.all(Array.from(matFile.files).map(async f => ({
+                    filename: f.name,
+                    mimeType: f.type || "application/octet-stream",
+                    base64: await getBase64(f),
+                    size: f.size
+                })));
+
+                await apiPost({
+                    action: 'uploadMaterial',
+                    data: {
+                        courseName: document.getElementById('matCourse').value,
+                        groups: groups,
+                        files: filesData
+                    }
+                });
+                
+                e.target.reset(); toggleForm('materialForm'); document.getElementById('matFileList').innerHTML = ''; await fetchData();
+            } catch(err) {
+                alert("Error uploading materials: " + err);
+            }
             btn.disabled = false; btn.innerText = "Upload Material";
         }
 
