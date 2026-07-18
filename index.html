@@ -6,10 +6,6 @@
     <title>Future Academy - Training Center Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     
-    <!-- CodeMirror for Python Editor -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
-    
     <style>
         /* ================= Base Variables & Reset ================= */
         :root {
@@ -134,11 +130,6 @@
         .material-card { background: var(--input-dark); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: 0.3s; }
         .material-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .material-icon { font-size: 2rem; color: var(--brand-orange); }
-        
-        /* Python Editor */
-        #editor-container { height: 400px; border-radius: 8px; overflow: hidden; border: 1px solid var(--input-dark); margin-bottom: 10px; }
-        .CodeMirror { height: 100% !important; font-size: 16px; }
-        #console-output { background: #000; color: #0f0; padding: 15px; border-radius: 8px; height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
 
         /* Toast */
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; background: var(--card-dark); color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transform: translateX(150%); transition: transform 0.3s ease; z-index: 10000; }
@@ -255,9 +246,9 @@
         <div class="sidebar">
             <div class="sidebar-logo">Student Portal</div>
             <div class="nav-item active" onclick="navigateStudent('student-home')">🏠 Home</div>
+            <div class="nav-item" onclick="navigateStudent('student-track')" id="nav-student-track" style="display:none;">🎯 Track Sessions</div>
             <div class="nav-item" onclick="navigateStudent('student-materials')" id="nav-student-materials" style="display:none;">📚 Study Materials</div>
             <div class="nav-item" onclick="navigateStudent('student-assignments')" id="nav-student-assignments" style="display:none;">📤 Assignments</div>
-            <div class="nav-item" onclick="navigateStudent('student-python')" id="nav-student-python" style="display:none;">🐍 Python Editor</div>
             <div style="flex:1"></div>
             <div class="nav-item" onclick="logout()" style="color: var(--error);">🚪 Logout</div>
         </div>
@@ -280,6 +271,16 @@
                 </div>
             </div>
 
+            <!-- Track Sessions -->
+            <div id="student-track" class="student-section" style="display: none;">
+                <div class="card table-responsive">
+                    <table id="trackSessionsTable">
+                        <thead><tr><th>Session No.</th><th>What was taught</th><th>Task Name</th><th>Task No.</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Study Materials -->
             <div id="student-materials" class="student-section" style="display: none;">
                 <div class="grid-cards" id="studentMaterialsList">
@@ -297,34 +298,25 @@
                             <input type="text" id="uploadStudentName" required placeholder="Ahmed Mohamed Ali">
                         </div>
                         <div class="form-group">
-                            <label>Session *</label>
-                            <select id="uploadSession" required>
+                            <label>Select Task *</label>
+                            <select id="uploadSessionTask" required>
                                 <!-- Injected via JS -->
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Files *</label>
+                            <label>Submission Message (Optional)</label>
+                            <textarea id="uploadMessage" rows="4" placeholder="Write your task message here..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Files (Optional)</label>
                             <div class="file-upload-wrapper">
-                                <input type="file" id="uploadFiles" multiple required onchange="updateFileList('uploadFiles', 'uploadFileList')">
+                                <input type="file" id="uploadFiles" multiple onchange="updateFileList('uploadFiles', 'uploadFileList')">
                                 <div class="custom-file-btn">Click to select files</div>
                             </div>
                             <div id="uploadFileList" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></div>
                         </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Upload Assignment</button>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Task</button>
                     </form>
-                </div>
-            </div>
-
-            <!-- Python Editor -->
-            <div id="student-python" class="student-section" style="display: none;">
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <h3>Python Editor</h3>
-                        <button class="btn btn-success" style="background:var(--success); border:none; color:white; border-radius:4px; padding:5px 15px; cursor:pointer;" onclick="runPython()">▶ Run Code</button>
-                    </div>
-                    <div id="editor-container"></div>
-                    <h4 style="margin-top:20px; margin-bottom:10px;">Console Output</h4>
-                    <div id="console-output"></div>
                 </div>
             </div>
 
@@ -389,8 +381,10 @@
                         <option value="">Select Group...</option>
                     </select>
                 </div>
-                <div class="form-group"><input type="text" id="sessionTitle" placeholder="Lesson Title" required></div>
                 <div class="form-group"><input type="number" id="sessionNumber" placeholder="Session Number" required></div>
+                <div class="form-group"><input type="text" id="sessionTitle" placeholder="Lesson Details (What was taught)" required></div>
+                <div class="form-group"><input type="text" id="sessionTaskName" placeholder="Task Name" required></div>
+                <div class="form-group"><input type="number" id="sessionTaskNumber" placeholder="Task Number" required></div>
                 <button type="submit" class="btn btn-primary" style="width:100%">Save Session</button>
             </form>
         </div>
@@ -404,7 +398,6 @@
                 <button class="close-btn" onclick="closeModal('materialModal')">&times;</button>
             </div>
             <form onsubmit="uploadMaterial(event)">
-                <div class="form-group"><input type="text" id="matName" placeholder="Material Title" required></div>
                 <div class="form-group">
                     <select id="matCourseId" required onchange="populateMaterialGroups()">
                         <option value="">Select Course...</option>
@@ -416,8 +409,8 @@
                 </div>
                 <div class="form-group">
                     <div class="file-upload-wrapper">
-                        <input type="file" id="matFile" required onchange="updateFileList('matFile', 'matFileList')">
-                        <div class="custom-file-btn">Select File</div>
+                        <input type="file" id="matFiles" multiple required onchange="updateFileList('matFiles', 'matFileList')">
+                        <div class="custom-file-btn">Select Files</div>
                     </div>
                     <div id="matFileList" style="margin-top: 10px; font-size: 0.85rem;"></div>
                 </div>
@@ -427,17 +420,9 @@
     </div>
 
     <!-- Scripts -->
-    <!-- CodeMirror for Python Editor -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-    <!-- Pyodide for Browser Python Execution -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziPl3EGB8byXCTWYigzSVHsBAb34vr-M-3gR0ndg_QKUgOoreSuF4U_0DOY-HyAu8/exec";
         
-        let pyodideInstance = null;
-        let pythonEditor = null;
         let adminDataCache = { courses: [], groups: [], sessions: [], materials: [] };
         let studentDataCache = { group: null, course: null, sessions: [], materials: [] };
         let currentRole = 'student'; // 'student' or 'admin'
@@ -514,9 +499,9 @@
             document.getElementById('loginForm').reset();
             // Reset Student state
             studentDataCache = { group: null, course: null, sessions: [], materials: [] };
+            document.getElementById('nav-student-track').style.display = 'none';
             document.getElementById('nav-student-materials').style.display = 'none';
             document.getElementById('nav-student-assignments').style.display = 'none';
-            document.getElementById('nav-student-python').style.display = 'none';
             navigateStudent('student-home');
         }
 
@@ -635,8 +620,10 @@
             let data = {
                 CourseID: document.getElementById('sessionCourseId').value,
                 GroupID: document.getElementById('sessionGroupId').value,
-                LessonTitle: document.getElementById('sessionTitle').value,
                 SessionNumber: document.getElementById('sessionNumber').value,
+                LessonTitle: document.getElementById('sessionTitle').value,
+                TaskName: document.getElementById('sessionTaskName').value,
+                TaskNumber: document.getElementById('sessionTaskNumber').value,
                 Status: "Active"
             };
             await apiCall({ action: "saveSession", data: data });
@@ -662,10 +649,18 @@
 
         async function uploadMaterial(e) {
             e.preventDefault();
-            showLoader("Uploading Material...");
+            showLoader("Uploading Materials...");
             
-            let fileInput = document.getElementById('matFile');
-            let base64 = await getBase64(fileInput.files[0]);
+            let fileInput = document.getElementById('matFiles');
+            let filesData = [];
+            for (let i = 0; i < fileInput.files.length; i++) {
+                let base64 = await getBase64(fileInput.files[i]);
+                filesData.push({
+                    filename: fileInput.files[i].name,
+                    mimeType: fileInput.files[i].type || "application/octet-stream",
+                    base64: base64
+                });
+            }
             
             let groupSelect = document.getElementById('matGroups');
             let selectedGroups = Array.from(groupSelect.selectedOptions).map(opt => opt.value);
@@ -674,15 +669,10 @@
             let course = adminDataCache.courses.find(c => c.ID === cid);
 
             let data = {
-                Name: document.getElementById('matName').value,
                 CourseID: cid,
                 CourseName: course ? course.Name : 'General',
                 GroupIDs: selectedGroups,
-                file: {
-                    filename: fileInput.files[0].name,
-                    mimeType: fileInput.files[0].type,
-                    base64: base64
-                }
+                files: filesData
             };
             
             await apiCall({ action: "uploadMaterial", data: data });
@@ -700,15 +690,11 @@
             
             let titles = {
                 'student-home': 'Welcome',
+                'student-track': 'Track Sessions',
                 'student-materials': 'Study Materials',
-                'student-assignments': 'Submit Assignment',
-                'student-python': 'Python IDE'
+                'student-assignments': 'Submit Assignment'
             };
             document.getElementById('student-page-title').innerText = titles[sectionId];
-            
-            if(sectionId === 'student-python' && !pythonEditor) {
-                initPythonEditor();
-            }
         }
 
         async function loadStudentData() {
@@ -722,23 +708,32 @@
                 document.getElementById('student-active-group').innerText = `Group: ${studentDataCache.group.Name} | Course: ${studentDataCache.course.Name}`;
                 
                 // Show menus
+                document.getElementById('nav-student-track').style.display = 'flex';
                 document.getElementById('nav-student-materials').style.display = 'flex';
                 document.getElementById('nav-student-assignments').style.display = 'flex';
                 
-                // If course is Python, show Python editor
-                if(studentDataCache.course.Name.toLowerCase().includes('python')) {
-                    document.getElementById('nav-student-python').style.display = 'flex';
-                }
-                
                 renderStudentUI();
-                navigateStudent('student-materials');
-                document.getElementById('nav-student-materials').classList.add('active');
+                navigateStudent('student-track');
+                document.getElementById('nav-student-track').classList.add('active');
                 
             } catch(e) {}
             hideLoader();
         }
 
         function renderStudentUI() {
+            // Track Sessions
+            document.querySelector('#trackSessionsTable tbody').innerHTML = studentDataCache.sessions.map(s => `
+                <tr>
+                    <td>${s.SessionNumber}</td>
+                    <td>${s.LessonTitle}</td>
+                    <td>${s.TaskName || '-'}</td>
+                    <td>${s.TaskNumber || '-'}</td>
+                </tr>
+            `).join('');
+            if(studentDataCache.sessions.length === 0) {
+                document.querySelector('#trackSessionsTable tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;">No sessions recorded yet.</td></tr>`;
+            }
+
             // Materials
             document.getElementById('studentMaterialsList').innerHTML = studentDataCache.materials.map(m => `
                 <div class="material-card">
@@ -751,18 +746,30 @@
                 document.getElementById('studentMaterialsList').innerHTML = `<p>No materials assigned yet.</p>`;
             }
             
-            // Assignment Session Dropdown
-            document.getElementById('uploadSession').innerHTML = studentDataCache.sessions.map(s => 
-                `<option value="${s.SessionNumber}">Session ${s.SessionNumber} - ${s.LessonTitle}</option>`
+            // Assignment Task Dropdown
+            document.getElementById('uploadSessionTask').innerHTML = '<option value="" disabled selected>Select the Task...</option>' + studentDataCache.sessions.filter(s => s.TaskName).map(s => 
+                `<option value="${s.SessionNumber}|${s.TaskName}">Session ${s.SessionNumber}: ${s.TaskName}</option>`
             ).join('');
         }
 
         async function handleStudentUpload(e) {
             e.preventDefault();
-            showLoader("Uploading Assignment (Please wait...)");
+            
+            let message = document.getElementById('uploadMessage').value.trim();
+            let fileInput = document.getElementById('uploadFiles');
+            
+            if(!message && fileInput.files.length === 0) {
+                showToast("You must provide either a message or upload files.", "error");
+                return;
+            }
+
+            let taskSelection = document.getElementById('uploadSessionTask').value.split('|');
+            let sessionNum = taskSelection[0];
+            let taskName = taskSelection[1];
+
+            showLoader("Submitting Task (Please wait...)");
             
             try {
-                let fileInput = document.getElementById('uploadFiles');
                 let filesData = [];
                 for(let i=0; i<fileInput.files.length; i++) {
                     let b64 = await getBase64(fileInput.files[i]);
@@ -778,7 +785,9 @@
                     studentName: document.getElementById('uploadStudentName').value,
                     courseName: studentDataCache.course.Name,
                     groupName: studentDataCache.group.Name,
-                    sessionName: "Session " + document.getElementById('uploadSession').value,
+                    sessionName: "Session " + sessionNum,
+                    taskName: taskName,
+                    message: message,
                     files: filesData
                 };
                 
@@ -788,52 +797,6 @@
                 document.getElementById('uploadFileList').innerHTML = "";
             } catch(e) {}
             hideLoader();
-        }
-
-        // ================= PYTHON EDITOR (Pyodide) =================
-        async function initPythonEditor() {
-            pythonEditor = CodeMirror(document.getElementById('editor-container'), {
-                value: "# Write your Python code here\nprint('Hello Future Academy!')\n",
-                mode: "python",
-                theme: "dracula",
-                lineNumbers: true,
-                indentUnit: 4
-            });
-
-            if (!pyodideInstance) {
-                document.getElementById('console-output').innerText = "Loading Python engine... Please wait.";
-                try {
-                    pyodideInstance = await loadPyodide();
-                    document.getElementById('console-output').innerText = "Python engine ready.\n";
-                } catch(e) {
-                    document.getElementById('console-output').innerText = "Failed to load Python engine.";
-                }
-            }
-        }
-
-        async function runPython() {
-            if(!pyodideInstance) {
-                showToast("Python is still loading", "error");
-                return;
-            }
-            let code = pythonEditor.getValue();
-            let consoleDiv = document.getElementById('console-output');
-            consoleDiv.innerText = "Running...\n";
-            
-            // Redirect stdout to UI
-            pyodideInstance.runPython(`
-import sys
-import io
-sys.stdout = io.StringIO()
-            `);
-            
-            try {
-                await pyodideInstance.runPythonAsync(code);
-                let output = pyodideInstance.runPython("sys.stdout.getvalue()");
-                consoleDiv.innerText = output;
-            } catch (err) {
-                consoleDiv.innerText = err;
-            }
         }
 
     </script>
