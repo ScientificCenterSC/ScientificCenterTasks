@@ -3,601 +3,839 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scientific Center Portal</title>
+    <title>Future Academy - Training Center Management</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Pyodide for Python Execution -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    
+    <!-- CodeMirror for Python Editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
     
     <style>
         /* ================= Base Variables & Reset ================= */
         :root {
-            --bg-dark: #0a0e17;        
-            --card-dark: #121826;      
-            --input-dark: #1e2638;     
+            --bg-dark: #0f111a;        
+            --card-dark: #1a1d27;      
+            --input-dark: #242938;     
             --text-main: #f0f4f8;      
             --text-muted: #94a3b8;     
             
             --brand-blue: #38BFE2;
-            --brand-navy: #1a2a44;
-            --brand-accent: #5e6ad2;
+            --brand-orange: #F47A20;
+            --brand-yellow: #F9C840;
+            --brand-blue-hover: #1F8EB8;
             
             --success: #2eCA7F;
             --error: #FF5C5C;
-            --glass-bg: rgba(18, 24, 38, 0.7);
-            --glass-border: rgba(56, 191, 226, 0.2);
+            --sidebar-width: 260px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden; }
-        .glass-card { background: var(--glass-bg); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 16px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
-        .hidden { display: none !important; }
-        .mb-2 { margin-bottom: 0.5rem; } .mb-4 { margin-bottom: 1rem; }
-        .flex { display: flex; } .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--input-dark); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--brand-blue); }
+
+        /* ================= UI Components ================= */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--brand-blue), var(--brand-blue-hover)); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(56, 191, 226, 0.3); }
+        .btn-danger { background: var(--error); }
+        .btn-danger:hover { background: #d44d4d; }
+        .btn-outline { background: transparent; border: 1px solid var(--brand-blue); color: var(--brand-blue); }
+        .btn-outline:hover { background: rgba(56, 191, 226, 0.1); }
         
-        /* Forms */
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; }
-        input[type="text"], input[type="password"], input[type="number"], select, textarea {
-            width: 100%; padding: 12px 15px; background-color: var(--input-dark); border: 1px solid #3d475a; color: var(--text-main); border-radius: 8px; font-size: 1rem; outline: none; transition: all 0.3s ease;
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted); }
+        input[type="text"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
+            width: 100%; padding: 12px; background-color: var(--input-dark);
+            border: 1px solid #3d475a; color: var(--text-main); border-radius: 8px; outline: none;
         }
-        input:focus, select:focus, textarea:focus { border-color: var(--brand-blue); box-shadow: 0 0 0 3px rgba(56, 191, 226, 0.2); }
-        button { padding: 12px 20px; background: linear-gradient(135deg, var(--brand-accent), var(--brand-blue)); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(56, 191, 226, 0.4); }
-
-        /* App Layout */
-        #loginView { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .login-box { width: 100%; max-width: 400px; padding: 40px; text-align: center; }
-        .login-box i { font-size: 3rem; color: var(--brand-blue); margin-bottom: 20px; }
-        .login-box h1 { margin-bottom: 30px; font-size: 1.8rem; }
-        .app-layout { display: flex; min-height: 100vh; }
-
-        /* Sidebar & Main */
-        .sidebar { width: 250px; background: var(--card-dark); border-right: 1px solid var(--glass-border); padding: 20px; display: flex; flex-direction: column; }
-        .sidebar .brand { font-size: 1.5rem; font-weight: bold; color: var(--brand-blue); margin-bottom: 30px; text-align: center; }
-        .nav-item { padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px; }
-        .nav-item:hover, .nav-item.active { background: var(--brand-navy); color: var(--brand-blue); }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #2a3140; }
-
-        /* Dashboard & Cards */
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .dash-card { padding: 30px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
-        .dash-card:hover { transform: translateY(-5px); border-color: var(--brand-blue); }
-        .dash-card i { font-size: 3rem; color: var(--brand-blue); margin-bottom: 15px; }
-        .material-card { padding: 20px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
-        .material-card .icon { font-size: 2rem; color: var(--brand-accent); }
-
-        /* Tables & Timelines */
-        .timeline { border-left: 2px solid var(--brand-blue); padding-left: 20px; margin-top: 20px; }
-        .timeline-item { margin-bottom: 20px; position: relative; }
-        .timeline-item::before { content: ''; position: absolute; left: -27px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--brand-blue); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #2a3140; }
-        th { background: var(--brand-navy); color: var(--brand-blue); }
-
-        /* Loader & Progress */
-        .loader { border: 4px solid var(--input-dark); border-top: 4px solid var(--brand-blue); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .progress-bar-container { width: 100%; background-color: var(--input-dark); border-radius: 8px; overflow: hidden; height: 8px; display: none; margin-bottom: 10px; }
-        .progress-bar { height: 100%; width: 0%; background-color: var(--brand-blue); transition: width 0.4s ease; }
-        .status-message { text-align: center; font-weight: 600; padding: 15px; border-radius: 8px; display: none; white-space: pre-line; margin-top: 10px; }
-        .status-message.success { display: block; background-color: rgba(46, 202, 127, 0.1); color: var(--success); border: 1px solid var(--success); }
-        .status-message.error { display: block; background-color: rgba(255, 92, 92, 0.1); color: var(--error); border: 1px solid var(--error); }
-
+        input:focus, select:focus, textarea:focus { border-color: var(--brand-blue); }
+        
+        /* Card */
+        .card { background: var(--card-dark); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        
+        /* Table */
+        .table-responsive { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--input-dark); }
+        th { color: var(--text-muted); font-weight: 600; font-size: 0.9rem; text-transform: uppercase; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal { background: var(--card-dark); width: 90%; max-width: 500px; padding: 25px; border-radius: 12px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
+        
         /* File Upload */
-        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-upload-wrapper { position: relative; overflow: hidden; width: 100%; }
         .file-upload-wrapper input[type="file"] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
-        .custom-file-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; background-color: rgba(56, 191, 226, 0.1); color: var(--brand-blue); border: 2px dashed var(--brand-blue); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: 600; }
-        .file-list { list-style: none; margin-top: 15px; }
-        .file-list li { background-color: var(--input-dark); padding: 10px 15px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; border-left: 3px solid var(--brand-accent); word-break: break-all; }
+        .custom-file-btn { display: flex; align-items: center; justify-content: center; padding: 15px; background: rgba(56,191,226,0.1); border: 2px dashed var(--brand-blue); border-radius: 8px; color: var(--brand-blue); cursor: pointer; }
+        
+        /* ================= Layouts ================= */
+        /* Login */
+        #login-view { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; min-height: 100vh; }
+        .login-box { background: var(--card-dark); padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; border-top: 4px solid var(--brand-blue); }
+        .login-tabs { display: flex; margin-bottom: 20px; gap: 10px; }
+        .login-tab { flex: 1; padding: 10px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); }
+        .login-tab.active { border-bottom-color: var(--brand-blue); color: var(--brand-blue); font-weight: bold; }
+        
+        /* Dashboard Layout */
+        .app-layout { display: none; width: 100%; }
+        .sidebar { width: var(--sidebar-width); background: var(--card-dark); height: 100vh; position: fixed; padding: 20px 0; display: flex; flex-direction: column; }
+        .sidebar-logo { text-align: center; margin-bottom: 30px; font-size: 1.5rem; font-weight: bold; color: var(--brand-blue); }
+        .nav-item { padding: 15px 20px; cursor: pointer; display: flex; align-items: center; gap: 15px; color: var(--text-muted); transition: 0.3s; }
+        .nav-item:hover, .nav-item.active { background: rgba(56, 191, 226, 0.1); color: var(--brand-blue); border-right: 3px solid var(--brand-blue); }
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 30px; width: calc(100% - var(--sidebar-width)); }
+        
+        /* Header */
+        .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .page-title { font-size: 1.8rem; font-weight: bold; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+
+        /* Loader */
+        #global-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--input-dark); border-top-color: var(--brand-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* Material Cards */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .material-card { background: var(--input-dark); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; transition: 0.3s; }
+        .material-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .material-icon { font-size: 2rem; color: var(--brand-orange); }
         
         /* Python Editor */
-        .editor-container { display: flex; flex-direction: column; height: 60vh; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border); }
-        #pythonCode { flex: 1; background: #1e1e1e; color: #d4d4d4; font-family: monospace; padding: 15px; border: none; resize: none; outline: none; }
-        .editor-toolbar { background: var(--card-dark); padding: 10px; display: flex; gap: 10px; }
-        #pythonOutput { background: #000; color: #0f0; padding: 15px; font-family: monospace; height: 150px; overflow-y: auto; }
-        
-        /* Checkbox list */
-        .checkbox-list { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
-        .checkbox-item { background: var(--input-dark); padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
+        #editor-container { height: 400px; border-radius: 8px; overflow: hidden; border: 1px solid var(--input-dark); margin-bottom: 10px; }
+        .CodeMirror { height: 100% !important; font-size: 16px; }
+        #console-output { background: #000; color: #0f0; padding: 15px; border-radius: 8px; height: 200px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; background: var(--card-dark); color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transform: translateX(150%); transition: transform 0.3s ease; z-index: 10000; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--error); }
     </style>
 </head>
 <body>
 
-    <!-- ================== LOGIN VIEW ================== -->
-    <div id="loginView">
-        <div class="glass-card login-box">
-            <i class="fa-solid fa-atom"></i>
-            <h1>Scientific Center</h1>
-            <form id="loginForm">
-                <div class="form-group"><input type="text" id="username" placeholder="Username" required></div>
-                <div class="form-group"><input type="password" id="password" placeholder="Password" required></div>
-                <button type="submit" style="width: 100%">Login</button>
-                <div id="loginError" class="status-message error" style="margin-top: 15px;">Invalid credentials</div>
+    <!-- Global Loader -->
+    <div id="global-loader" style="display: none;">
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; color: var(--text-muted);" id="loader-text">Loading...</p>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">Message here</div>
+
+    <!-- ================= 1. LOGIN VIEW ================= -->
+    <div id="login-view">
+        <div class="login-box">
+            <h2 style="color: var(--brand-blue); margin-bottom: 10px;">Future Academy</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px;">Training Center Management System</p>
+            
+            <div class="login-tabs">
+                <div class="login-tab active" onclick="switchLoginTab('student')">Student</div>
+                <div class="login-tab" onclick="switchLoginTab('admin')">Admin</div>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <input type="text" id="loginUsername" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
             </form>
         </div>
     </div>
 
-    <!-- ================== MAIN APP VIEW ================== -->
-    <div id="appView" class="app-layout hidden">
-        <aside class="sidebar">
-            <div class="brand"><i class="fa-solid fa-atom"></i> SciCenter</div>
-            <div id="studentNav" class="hidden">
-                <div class="nav-item active" onclick="showSection('studentHome')"><i class="fa-solid fa-home"></i> Home</div>
-                <div class="nav-item" onclick="showSection('studentMaterials')"><i class="fa-solid fa-book"></i> Materials</div>
-                <div class="nav-item" onclick="showSection('studentUpload')"><i class="fa-solid fa-upload"></i> Upload Assignment</div>
-                <div class="nav-item" onclick="showSection('studentSessions')"><i class="fa-solid fa-clock-rotate-left"></i> My Sessions</div>
-            </div>
-            <div id="adminNav" class="hidden">
-                <div class="nav-item active" onclick="showSection('adminDashboard')"><i class="fa-solid fa-chart-line"></i> Dashboard</div>
-                <div class="nav-item" onclick="showSection('adminCourses')"><i class="fa-solid fa-graduation-cap"></i> Courses</div>
-                <div class="nav-item" onclick="showSection('adminGroups')"><i class="fa-solid fa-users"></i> Groups</div>
-                <div class="nav-item" onclick="showSection('adminMaterials')"><i class="fa-solid fa-file-import"></i> Materials</div>
-                <div class="nav-item" onclick="showSection('adminTracking')"><i class="fa-solid fa-list-check"></i> Tracking</div>
-            </div>
-            <div style="margin-top: auto;">
-                <div class="nav-item" onclick="logout()"><i class="fa-solid fa-sign-out-alt"></i> Logout</div>
-            </div>
-        </aside>
-
-        <main class="main-content">
-            <div class="topbar">
-                <h2 id="pageTitle">Dashboard</h2>
+    <!-- ================= 2. ADMIN DASHBOARD ================= -->
+    <div id="admin-view" class="app-layout">
+        <div class="sidebar">
+            <div class="sidebar-logo">Admin Panel</div>
+            <div class="nav-item active" onclick="navigateAdmin('admin-dashboard')">📊 Dashboard</div>
+            <div class="nav-item" onclick="navigateAdmin('admin-courses')">📚 Courses</div>
+            <div class="nav-item" onclick="navigateAdmin('admin-groups')">👥 Groups</div>
+            <div class="nav-item" onclick="navigateAdmin('admin-sessions')">📅 Sessions</div>
+            <div class="nav-item" onclick="navigateAdmin('admin-materials')">📁 Materials</div>
+            <div style="flex:1"></div>
+            <div class="nav-item" onclick="logout()" style="color: var(--error);">🚪 Logout</div>
+        </div>
+        <div class="main-content">
+            <div class="top-header">
+                <h1 class="page-title" id="admin-page-title">Dashboard</h1>
                 <div class="user-info">
-                    <span id="welcomeUser">Welcome</span>
+                    <span>Admin User</span>
                 </div>
             </div>
-            <div id="loader" class="loader hidden"></div>
 
-            <div id="sectionsContainer">
-                <!-- ================== STUDENT SECTIONS ================== -->
-                <div id="studentHome" class="section hidden">
-                    <div class="glass-card mb-4" style="padding:20px">
-                        <h3>Select Course & Group</h3>
-                        <div class="flex gap-4 mt-4">
-                            <select id="homeCourseSelect" onchange="populateHomeGroups()">
-                                <option value="">Select Course...</option>
-                            </select>
-                            <select id="homeGroupSelect" onchange="loadStudentData()">
-                                <option value="">Select Group...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="dashboard-grid">
-                        <div class="glass-card dash-card" onclick="showSection('studentMaterials')">
-                            <i class="fa-solid fa-book-open-reader"></i><h3>Study Materials</h3>
-                        </div>
-                        <div class="glass-card dash-card" onclick="showSection('studentUpload')">
-                            <i class="fa-solid fa-cloud-arrow-up"></i><h3>Upload Assignment</h3>
-                        </div>
-                        <div class="glass-card dash-card" onclick="showSection('studentSessions')">
-                            <i class="fa-solid fa-tasks"></i><h3>My Sessions</h3>
-                        </div>
-                    </div>
+            <!-- Admin Views -->
+            <div id="admin-dashboard" class="admin-section">
+                <div class="grid-cards" id="admin-stats">
+                    <!-- Stats loaded via JS -->
                 </div>
-
-                <div id="studentMaterials" class="section hidden">
-                    <button class="mb-4" onclick="showSection('studentHome')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <div id="materialsGrid" class="dashboard-grid"></div>
-                </div>
-
-                <div id="studentSessions" class="section hidden">
-                    <button class="mb-4" onclick="showSection('studentHome')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <div class="glass-card" style="padding: 30px;"><div class="timeline" id="sessionsTimeline"></div></div>
-                </div>
-
-                <div id="pythonEditor" class="section hidden">
-                    <button class="mb-4" onclick="showSection('studentMaterials')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                    <div class="glass-card editor-container">
-                        <div class="editor-toolbar">
-                            <button onclick="runPython()"><i class="fa-solid fa-play"></i> Run Code</button>
-                            <button onclick="downloadCode()"><i class="fa-solid fa-download"></i> Save</button>
-                            <span id="pyodideStatus" style="margin-left:auto; color:var(--brand-yellow);">Loading Python...</span>
-                        </div>
-                        <textarea id="pythonCode" spellcheck="false">print("Ready")</textarea>
-                        <div id="pythonOutput"></div>
-                    </div>
-                </div>
-
-                <div id="studentUpload" class="section hidden">
-                    <div class="glass-card" style="max-width: 600px; margin: 0 auto; padding: 30px;">
-                        <button class="mb-4" onclick="showSection('studentHome')"><i class="fa-solid fa-arrow-left"></i> Back</button>
-                        <form id="uploadForm">
-                            <div class="form-group">
-                                <label>Course</label>
-                                <select id="upCourseSelect" onchange="populateUpGroups()" required><option value="">Select Course</option></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Group</label>
-                                <select id="upGroupSelect" required><option value="">Select Group</option></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Session Number</label>
-                                <select id="upSessionName" required>
-                                    <option value="">Select session</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Full Name (3 parts)</label>
-                                <input type="text" id="upStudentName" placeholder="Ahmed Mohamed Ali" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Upload Files</label>
-                                <div class="file-upload-wrapper">
-                                    <input type="file" id="upFiles" multiple required>
-                                    <label for="upFiles" class="custom-file-btn"><i class="fa-solid fa-paperclip"></i> Select Files</label>
-                                </div>
-                                <ul id="upFileList" class="file-list"></ul>
-                            </div>
-                            <button type="submit" id="upSubmitBtn" style="width: 100%"><i class="fa-solid fa-cloud-upload-alt"></i> Submit Assignment</button>
-                            <div class="progress-bar-container" id="upProgressContainer"><div class="progress-bar" id="upProgressBar"></div></div>
-                            <div id="upStatusMessage" class="status-message"></div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- ================== ADMIN SECTIONS ================== -->
-                <div id="adminDashboard" class="section hidden">
-                    <div class="dashboard-grid">
-                        <div class="glass-card dash-card"><i class="fa-solid fa-graduation-cap"></i><h3 id="statCourses">0</h3><p>Courses</p></div>
-                        <div class="glass-card dash-card"><i class="fa-solid fa-users"></i><h3 id="statGroups">0</h3><p>Groups</p></div>
-                        <div class="glass-card dash-card"><i class="fa-solid fa-file-alt"></i><h3 id="statMaterials">0</h3><p>Materials</p></div>
-                    </div>
-                </div>
-
-                <div id="adminCourses" class="section hidden">
-                    <div class="glass-card" style="padding: 20px;">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3>Manage Courses</h3><button onclick="toggleForm('courseForm')"><i class="fa-solid fa-plus"></i> Add Course</button>
-                        </div>
-                        <form id="courseForm" class="hidden mb-4" onsubmit="addCourse(event)">
-                            <div class="form-group"><input type="text" id="courseName" placeholder="Course Name" required></div>
-                            <div class="form-group"><input type="number" id="courseSessions" placeholder="Number of Sessions" required></div>
-                            <button type="submit">Save Course</button>
-                        </form>
-                        <table id="coursesTable"><thead><tr><th>Name</th><th>Sessions</th></tr></thead><tbody></tbody></table>
-                    </div>
-                </div>
-
-                <div id="adminGroups" class="section hidden">
-                    <div class="glass-card" style="padding: 20px;">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3>Manage Groups</h3><button onclick="toggleForm('groupForm')"><i class="fa-solid fa-plus"></i> Add Group</button>
-                        </div>
-                        <form id="groupForm" class="hidden mb-4" onsubmit="addGroup(event)">
-                            <div class="form-group">
-                                <label>Select Course</label>
-                                <select id="groupCourse" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Group Code</label>
-                                <input type="text" id="groupCode" placeholder="Group Code (e.g. PY-01)" required>
-                            </div>
-                            <button type="submit">Save Group</button>
-                        </form>
-                        <table id="groupsTable"><thead><tr><th>Code</th><th>Course</th></tr></thead><tbody></tbody></table>
-                    </div>
-                </div>
-
-                <div id="adminMaterials" class="section hidden">
-                    <div class="glass-card" style="padding: 20px;">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3>Manage Materials</h3><button onclick="toggleForm('materialForm')"><i class="fa-solid fa-upload"></i> Upload Material</button>
-                        </div>
-                        <form id="materialForm" class="hidden mb-4" onsubmit="uploadMaterial(event)">
-                            <div class="form-group">
-                                <label>Course</label>
-                                <select id="matCourse" onchange="populateMatGroups()" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Select Files (Multiple Allowed)</label>
-                                <div class="file-upload-wrapper">
-                                    <input type="file" id="matFile" multiple required>
-                                    <label for="matFile" class="custom-file-btn"><i class="fa-solid fa-paperclip"></i> Choose Files</label>
-                                </div>
-                                <ul id="matFileList" class="file-list"></ul>
-                            </div>
-                            <div class="form-group">
-                                <label>Permissions (Select Groups)</label>
-                                <div id="matGroupCheckboxes" class="checkbox-list"></div>
-                            </div>
-                            <button type="submit" id="matSubmitBtn">Upload Material</button>
-                        </form>
-                        <table id="materialsTable"><thead><tr><th>Title</th><th>Course</th><th>Date</th></tr></thead><tbody></tbody></table>
-                    </div>
-                </div>
-
-                <div id="adminTracking" class="section hidden">
-                    <div class="glass-card" style="padding: 20px;">
-                        <h3>Add Session Tracking</h3>
-                        <form id="trackingForm" onsubmit="addTracking(event)">
-                            <div class="form-group">
-                                <select id="trackCourse" onchange="populateTrackGroups()" required><option value="">Select Course</option></select>
-                            </div>
-                            <div class="form-group"><select id="trackGroup" required><option value="">Select Group</option></select></div>
-                            <div class="form-group"><input type="number" id="trackSessionNo" placeholder="Session Number" required></div>
-                            <div class="form-group"><input type="text" id="trackTopic" placeholder="Topic" required></div>
-                            <div class="form-group"><textarea id="trackHomework" placeholder="Homework Details" rows="3"></textarea></div>
-                            <button type="submit">Save Tracking</button>
-                        </form>
-                    </div>
-                </div>
-
             </div>
-        </main>
+
+            <div id="admin-courses" class="admin-section" style="display: none;">
+                <button class="btn btn-primary" onclick="openModal('courseModal')">+ Add Course</button>
+                <div class="card table-responsive" style="margin-top:20px;">
+                    <table id="coursesTable">
+                        <thead><tr><th>Code</th><th>Name</th><th>Sessions</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="admin-groups" class="admin-section" style="display: none;">
+                <button class="btn btn-primary" onclick="openModal('groupModal')">+ Add Group</button>
+                <div class="card table-responsive" style="margin-top:20px;">
+                    <table id="groupsTable">
+                        <thead><tr><th>Code</th><th>Name</th><th>Course</th><th>Instructor</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="admin-sessions" class="admin-section" style="display: none;">
+                <button class="btn btn-primary" onclick="openModal('sessionModal')">+ Add Session</button>
+                <div class="card table-responsive" style="margin-top:20px;">
+                    <table id="sessionsTable">
+                        <thead><tr><th>Session</th><th>Course</th><th>Group</th><th>Lesson Title</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="admin-materials" class="admin-section" style="display: none;">
+                <button class="btn btn-primary" onclick="openModal('materialModal')">+ Upload Material</button>
+                <div class="card table-responsive" style="margin-top:20px;">
+                    <table id="materialsTable">
+                        <thead><tr><th>Name</th><th>Type</th><th>Course</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- ================= 3. STUDENT DASHBOARD ================= -->
+    <div id="student-view" class="app-layout">
+        <div class="sidebar">
+            <div class="sidebar-logo">Student Portal</div>
+            <div class="nav-item active" onclick="navigateStudent('student-home')">🏠 Home</div>
+            <div class="nav-item" onclick="navigateStudent('student-materials')" id="nav-student-materials" style="display:none;">📚 Study Materials</div>
+            <div class="nav-item" onclick="navigateStudent('student-assignments')" id="nav-student-assignments" style="display:none;">📤 Assignments</div>
+            <div class="nav-item" onclick="navigateStudent('student-python')" id="nav-student-python" style="display:none;">🐍 Python Editor</div>
+            <div style="flex:1"></div>
+            <div class="nav-item" onclick="logout()" style="color: var(--error);">🚪 Logout</div>
+        </div>
+        <div class="main-content">
+            <div class="top-header">
+                <h1 class="page-title" id="student-page-title">Welcome Student</h1>
+                <div class="user-info">
+                    <span id="student-active-group"></span>
+                </div>
+            </div>
+
+            <!-- Student Home (Select Group) -->
+            <div id="student-home" class="student-section">
+                <div class="card" style="max-width: 500px; margin: 0 auto;">
+                    <h3>Select Your Group to Continue</h3>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <input type="text" id="studentGroupCode" placeholder="Enter Group Code (e.g. GRP-123)">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%" onclick="loadStudentData()">Enter Group</button>
+                </div>
+            </div>
+
+            <!-- Study Materials -->
+            <div id="student-materials" class="student-section" style="display: none;">
+                <div class="grid-cards" id="studentMaterialsList">
+                    <!-- Cards injected via JS -->
+                </div>
+            </div>
+
+            <!-- Assignment Submission -->
+            <div id="student-assignments" class="student-section" style="display: none;">
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <h3 style="color: var(--brand-blue); margin-bottom: 20px;">Submit Assignment</h3>
+                    <form id="studentUploadForm" onsubmit="handleStudentUpload(event)">
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="uploadStudentName" required placeholder="Ahmed Mohamed Ali">
+                        </div>
+                        <div class="form-group">
+                            <label>Session *</label>
+                            <select id="uploadSession" required>
+                                <!-- Injected via JS -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Files *</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="uploadFiles" multiple required onchange="updateFileList('uploadFiles', 'uploadFileList')">
+                                <div class="custom-file-btn">Click to select files</div>
+                            </div>
+                            <div id="uploadFileList" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Upload Assignment</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Python Editor -->
+            <div id="student-python" class="student-section" style="display: none;">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <h3>Python Editor</h3>
+                        <button class="btn btn-success" style="background:var(--success); border:none; color:white; border-radius:4px; padding:5px 15px; cursor:pointer;" onclick="runPython()">▶ Run Code</button>
+                    </div>
+                    <div id="editor-container"></div>
+                    <h4 style="margin-top:20px; margin-bottom:10px;">Console Output</h4>
+                    <div id="console-output"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= MODALS (Admin) ================= -->
+    <!-- Course Modal -->
+    <div class="modal-overlay" id="courseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add/Edit Course</h3>
+                <button class="close-btn" onclick="closeModal('courseModal')">&times;</button>
+            </div>
+            <form onsubmit="saveCourse(event)">
+                <input type="hidden" id="courseId">
+                <div class="form-group"><input type="text" id="courseName" placeholder="Course Name" required></div>
+                <div class="form-group"><input type="text" id="courseCode" placeholder="Course Code" required></div>
+                <div class="form-group"><input type="number" id="courseSessions" placeholder="Number of Sessions" required></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save Course</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Group Modal -->
+    <div class="modal-overlay" id="groupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add/Edit Group</h3>
+                <button class="close-btn" onclick="closeModal('groupModal')">&times;</button>
+            </div>
+            <form onsubmit="saveGroup(event)">
+                <input type="hidden" id="groupId">
+                <div class="form-group"><input type="text" id="groupName" placeholder="Group Name" required></div>
+                <div class="form-group"><input type="text" id="groupCode" placeholder="Group Code (For Student Login)" required></div>
+                <div class="form-group">
+                    <select id="groupCourseId" required>
+                        <option value="">Select Course...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save Group</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Session Modal -->
+    <div class="modal-overlay" id="sessionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add/Edit Session</h3>
+                <button class="close-btn" onclick="closeModal('sessionModal')">&times;</button>
+            </div>
+            <form onsubmit="saveSession(event)">
+                <input type="hidden" id="sessionId">
+                <div class="form-group">
+                    <select id="sessionCourseId" required onchange="populateGroupDropdown('sessionCourseId', 'sessionGroupId')">
+                        <option value="">Select Course...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <select id="sessionGroupId" required>
+                        <option value="">Select Group...</option>
+                    </select>
+                </div>
+                <div class="form-group"><input type="text" id="sessionTitle" placeholder="Lesson Title" required></div>
+                <div class="form-group"><input type="number" id="sessionNumber" placeholder="Session Number" required></div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save Session</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Material Modal -->
+    <div class="modal-overlay" id="materialModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Upload Material</h3>
+                <button class="close-btn" onclick="closeModal('materialModal')">&times;</button>
+            </div>
+            <form onsubmit="uploadMaterial(event)">
+                <div class="form-group"><input type="text" id="matName" placeholder="Material Title" required></div>
+                <div class="form-group">
+                    <select id="matCourseId" required onchange="populateMaterialGroups()">
+                        <option value="">Select Course...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Assign to Groups (Select Multiple)</label>
+                    <select id="matGroups" multiple style="height:80px;"></select>
+                </div>
+                <div class="form-group">
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="matFile" required onchange="updateFileList('matFile', 'matFileList')">
+                        <div class="custom-file-btn">Select File</div>
+                    </div>
+                    <div id="matFileList" style="margin-top: 10px; font-size: 0.85rem;"></div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Upload</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- CodeMirror for Python Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <!-- Pyodide for Browser Python Execution -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+
     <script>
-        // Deployed Apps Script URL
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwdCVjE-uxjDZmqsByykPds_TXQGYlq0dV6V8QyLd_YXYub9NK_u1S1QQbPgFITyiOe/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbziPl3EGB8byXCTWYigzSVHsBAb34vr-M-3gR0ndg_QKUgOoreSuF4U_0DOY-HyAu8/exec";
         
-        let currentUserRole = null;
-        let globalData = { courses: [], groups: [], materials: [], permissions: [], tracking: [] };
         let pyodideInstance = null;
+        let pythonEditor = null;
+        let adminDataCache = { courses: [], groups: [], sessions: [], materials: [] };
+        let studentDataCache = { group: null, course: null, sessions: [], materials: [] };
+        let currentRole = 'student'; // 'student' or 'admin'
 
-        // UI Helpers
-        const hideAll = () => document.querySelectorAll('.section').forEach(el => el.classList.add('hidden'));
-        const toggleForm = (id) => document.getElementById(id).classList.toggle('hidden');
-        const showLoader = (show) => document.getElementById('loader').classList[show ? 'remove' : 'add']('hidden');
-
-        function showSection(sectionId) {
-            hideAll(); document.getElementById(sectionId).classList.remove('hidden');
-            document.getElementById('pageTitle').innerText = sectionId.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick') === `showSection('${sectionId}')`);
-            if (activeNav) activeNav.classList.add('active');
+        // ================= UTILS & UI =================
+        function showLoader(text = "Loading...") {
+            document.getElementById('loader-text').innerText = text;
+            document.getElementById('global-loader').style.display = 'flex';
+        }
+        function hideLoader() { document.getElementById('global-loader').style.display = 'none'; }
+        
+        function showToast(msg, type='success') {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        async function apiPost(payload) {
+        function switchLoginTab(type) {
+            currentRole = type;
+            document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function updateFileList(inputId, listId) {
+            const input = document.getElementById(inputId);
+            const list = document.getElementById(listId);
+            list.innerHTML = Array.from(input.files).map(f => `📄 ${f.name}`).join('<br>');
+        }
+
+        async function apiCall(payload) {
             try {
                 const res = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    method: "POST",
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                if(data.status === 'error' || data.success === false) {
-                    alert("Server Error: " + data.message);
-                }
-                return data;
-            } catch (error) {
-                alert("Network Error: Make sure you deployed the new Apps Script version! " + error.message);
-                return { status: "error" };
+                const result = await res.json();
+                if (result.status === 'error') throw new Error(result.message);
+                return result;
+            } catch (err) {
+                showToast(err.message, 'error');
+                throw err;
             }
         }
 
-        // ================== LOGIN SYSTEM ==================
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        // ================= AUTHENTICATION =================
+        async function handleLogin(e) {
             e.preventDefault();
-            const u = document.getElementById('username').value.trim().toLowerCase();
-            const p = document.getElementById('password').value.trim().toLowerCase();
-            if (u === 'student' && p === 'student') { currentUserRole = 'student'; loginSuccess('Student'); }
-            else if (u === 'admin' && p === 'admin') { currentUserRole = 'admin'; loginSuccess('Admin'); }
-            else document.getElementById('loginError').style.display = 'block';
-        });
-
-        async function loginSuccess(role) {
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('appView').classList.remove('hidden');
-            document.getElementById('welcomeUser').innerText = `Welcome, ${role}`;
+            const user = document.getElementById('loginUsername').value;
+            const pass = document.getElementById('loginPassword').value;
             
-            if (role === 'Student') { document.getElementById('studentNav').classList.remove('hidden'); showSection('studentHome'); }
-            else { document.getElementById('adminNav').classList.remove('hidden'); showSection('adminDashboard'); }
-
-            await fetchData();
-        }
-
-        function logout() { location.reload(); }
-
-        // ================== DATA FETCHING ==================
-        async function fetchData() {
-            showLoader(true);
+            showLoader("Authenticating...");
             try {
-                const res = await fetch(`${SCRIPT_URL}?action=getInitialData`);
-                const data = await res.json();
-                if (data.status === 'success') {
-                    globalData = data;
-                    if (currentUserRole === 'student') populateStudentSelectors();
-                    if (currentUserRole === 'admin') populateAdminData();
+                const res = await apiCall({ action: "login", username: user, password: pass, type: currentRole });
+                if(res.status === 'success') {
+                    document.getElementById('login-view').style.display = 'none';
+                    if(res.role === 'admin') {
+                        document.getElementById('admin-view').style.display = 'flex';
+                        loadAdminData();
+                    } else {
+                        document.getElementById('student-view').style.display = 'flex';
+                    }
                 }
-            } catch (e) { console.error("Fetch Error:", e); }
-            showLoader(false);
+            } catch(e) {}
+            hideLoader();
         }
 
-        // ================== STUDENT LOGIC ==================
-        function populateStudentSelectors() {
-            const courses = globalData.courses.map(c => c['Name']);
-            const homeCourse = document.getElementById('homeCourseSelect');
-            const upCourse = document.getElementById('upCourseSelect');
+        function logout() {
+            document.getElementById('admin-view').style.display = 'none';
+            document.getElementById('student-view').style.display = 'none';
+            document.getElementById('login-view').style.display = 'flex';
+            document.getElementById('loginForm').reset();
+            // Reset Student state
+            studentDataCache = { group: null, course: null, sessions: [], materials: [] };
+            document.getElementById('nav-student-materials').style.display = 'none';
+            document.getElementById('nav-student-assignments').style.display = 'none';
+            document.getElementById('nav-student-python').style.display = 'none';
+            navigateStudent('student-home');
+        }
+
+        // ================= ADMIN LOGIC =================
+        function navigateAdmin(sectionId) {
+            document.querySelectorAll('.admin-section').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('#admin-view .nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(sectionId).style.display = 'block';
             
-            let html = '<option value="">Select Course...</option>';
-            courses.forEach(c => html += `<option value="${c}">${c}</option>`);
-            homeCourse.innerHTML = html; upCourse.innerHTML = html;
+            let titles = {
+                'admin-dashboard': 'Dashboard',
+                'admin-courses': 'Manage Courses',
+                'admin-groups': 'Manage Groups',
+                'admin-sessions': 'Manage Sessions',
+                'admin-materials': 'Manage Materials'
+            };
+            document.getElementById('admin-page-title').innerText = titles[sectionId];
         }
 
-        function populateHomeGroups() {
-            const cName = document.getElementById('homeCourseSelect').value;
-            const groups = globalData.groups.filter(g => g['Course'] === cName);
-            const select = document.getElementById('homeGroupSelect');
-            select.innerHTML = '<option value="">Select Group...</option>' + groups.map(g => `<option value="${g['Group Code']}">${g['Group Code']}</option>`).join('');
-            loadStudentData(); // clear data
+        async function loadAdminData() {
+            showLoader("Loading Dashboard Data...");
+            try {
+                const res = await apiCall({ action: "getAllData" });
+                adminDataCache = res.data;
+                renderAdminUI();
+            } catch(e) {}
+            hideLoader();
         }
 
-        function populateUpGroups() {
-            const cName = document.getElementById('upCourseSelect').value;
-            const groups = globalData.groups.filter(g => g['Course'] === cName);
-            const select = document.getElementById('upGroupSelect');
-            select.innerHTML = '<option value="">Select Group...</option>' + groups.map(g => `<option value="${g['Group Code']}">${g['Group Code']}</option>`).join('');
+        function renderAdminUI() {
+            // Stats
+            document.getElementById('admin-stats').innerHTML = `
+                <div class="card"><h3>Courses</h3><p style="font-size:2rem;color:var(--brand-blue)">${adminDataCache.courses.length}</p></div>
+                <div class="card"><h3>Groups</h3><p style="font-size:2rem;color:var(--brand-orange)">${adminDataCache.groups.length}</p></div>
+                <div class="card"><h3>Sessions</h3><p style="font-size:2rem;color:var(--brand-yellow)">${adminDataCache.sessions.length}</p></div>
+                <div class="card"><h3>Materials</h3><p style="font-size:2rem;color:var(--success)">${adminDataCache.materials.length}</p></div>
+            `;
             
-            // Populate sessions dynamically based on the selected course
-            const courseObj = globalData.courses.find(c => c['Name'] === cName);
-            const numSessions = courseObj ? parseInt(courseObj['Number of Sessions']) || 0 : 0;
-            const sessionSelect = document.getElementById('upSessionName');
-            let sessionHtml = '<option value="">Select session</option>';
-            for(let i=1; i<=numSessions; i++) {
-                sessionHtml += `<option value="Session ${i}">Session ${i}</option>`;
-            }
-            sessionSelect.innerHTML = sessionHtml;
-        }
+            // Courses
+            document.querySelector('#coursesTable tbody').innerHTML = adminDataCache.courses.map(c => `
+                <tr><td>${c.Code}</td><td>${c.Name}</td><td>${c.Sessions}</td><td>Active</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('Courses', '${c.ID}')">Delete</button></td></tr>
+            `).join('');
 
-        function loadStudentData() {
-            const grp = document.getElementById('homeGroupSelect').value;
-            const matGrid = document.getElementById('materialsGrid');
-            const tl = document.getElementById('sessionsTimeline');
-            if (!grp) { matGrid.innerHTML = ''; tl.innerHTML = ''; return; }
-
-            const allowedMatIds = globalData.permissions.filter(p => p['Group Code'] === grp).map(p => p['Material ID']);
-            const materials = globalData.materials.filter(m => allowedMatIds.includes(m['Material ID']));
-
-            matGrid.innerHTML = materials.length === 0 ? '<p>No materials available.</p>' : materials.map(m => {
-                const ext = m['Title'].split('.').pop().toLowerCase();
-                let icon = ext === 'py' ? 'fa-python' : ext === 'pdf' ? 'fa-file-pdf' : 'fa-file';
-                let btn = ext === 'py' ? `<button onclick="openPythonEditor('${m['URL']}')"><i class="fa-solid fa-code"></i> Editor</button>` 
-                                       : `<button onclick="window.open('${m['URL']}', '_blank')"><i class="fa-solid fa-download"></i> Download</button>`;
-                return `<div class="glass-card material-card"><i class="fa-brands ${icon} icon"></i><h4>${m['Title']}</h4><p style="font-size:0.8rem">${m['Type']}</p><div style="margin-top:auto">${btn}</div></div>`;
+            // Groups
+            document.querySelector('#groupsTable tbody').innerHTML = adminDataCache.groups.map(g => {
+                let course = adminDataCache.courses.find(c => c.ID === g.CourseID);
+                return `<tr><td>${g.Code}</td><td>${g.Name}</td><td>${course ? course.Name : '-'}</td><td>${g.Instructor}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('Groups', '${g.ID}')">Delete</button></td></tr>`;
             }).join('');
 
-            const sessions = globalData.tracking.filter(t => t['Group'] === grp);
-            tl.innerHTML = sessions.length === 0 ? '<p>No sessions yet.</p>' : sessions.map(s => `
-                <div class="timeline-item glass-card" style="padding:15px"><h4 style="color:var(--brand-blue)">Session ${s['Session Number']}: ${s['Session Topic']}</h4><p><strong>HW:</strong> ${s['Homework']}</p><p style="font-size:0.8rem; color:var(--text-muted)">${s['Date']}</p></div>
+            // Sessions
+            document.querySelector('#sessionsTable tbody').innerHTML = adminDataCache.sessions.map(s => {
+                let group = adminDataCache.groups.find(g => g.ID === s.GroupID);
+                return `<tr><td>${s.SessionNumber}</td><td>-</td><td>${group ? group.Name : '-'}</td><td>${s.LessonTitle}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('Sessions', '${s.ID}')">Delete</button></td></tr>`;
+            }).join('');
+
+            // Materials
+            document.querySelector('#materialsTable tbody').innerHTML = adminDataCache.materials.map(m => `
+                <tr><td><a href="${m.DriveUrl}" target="_blank" style="color:var(--brand-blue)">${m.Name}</a></td><td>${m.Type}</td><td>-</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteRecord('Materials', '${m.ID}')">Delete</button></td></tr>
             `).join('');
+
+            // Populate Dropdowns
+            let courseOpts = '<option value="">Select Course...</option>' + adminDataCache.courses.map(c => `<option value="${c.ID}">${c.Name}</option>`).join('');
+            document.getElementById('groupCourseId').innerHTML = courseOpts;
+            document.getElementById('sessionCourseId').innerHTML = courseOpts;
+            document.getElementById('matCourseId').innerHTML = courseOpts;
         }
 
-        // ================== STUDENT UPLOAD ==================
-        const upFiles = document.getElementById('upFiles');
-        upFiles.addEventListener('change', () => { document.getElementById('upFileList').innerHTML = Array.from(upFiles.files).map(f => `<li>${f.name}</li>`).join(''); });
+        function populateGroupDropdown(courseSelectId, groupSelectId) {
+            let cid = document.getElementById(courseSelectId).value;
+            let groupOpts = '<option value="">Select Group...</option>' + adminDataCache.groups.filter(g => g.CourseID === cid).map(g => `<option value="${g.ID}">${g.Name}</option>`).join('');
+            document.getElementById(groupSelectId).innerHTML = groupOpts;
+        }
 
-        const getBase64 = (file) => new Promise((resolve, reject) => {
-            const reader = new FileReader(); reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]); reader.onerror = error => reject(error);
-        });
+        function populateMaterialGroups() {
+            let cid = document.getElementById('matCourseId').value;
+            let groupOpts = adminDataCache.groups.filter(g => g.CourseID === cid).map(g => `<option value="${g.ID}">${g.Name}</option>`).join('');
+            document.getElementById('matGroups').innerHTML = groupOpts;
+        }
 
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        async function saveCourse(e) {
             e.preventDefault();
-            const btn = document.getElementById("upSubmitBtn"), pb = document.getElementById("upProgressContainer"), pbar = document.getElementById("upProgressBar"), msg = document.getElementById("upStatusMessage");
-            btn.disabled = true; pb.style.display = "block"; pbar.style.width = "30%"; msg.style.display = "none";
-            
-            try {
-                const filesData = await Promise.all(Array.from(upFiles.files).map(async f => ({ filename: f.name, mimeType: f.type || "application/octet-stream", base64: await getBase64(f) })));
-                pbar.style.width = "60%";
-                
-                const payload = {
-                    action: 'submitTask',
-                    studentName: document.getElementById('upStudentName').value,
-                    courseName: document.getElementById('upCourseSelect').value,
-                    groupName: document.getElementById('upGroupSelect').value,
-                    sessionName: document.getElementById('upSessionName').value,
-                    files: filesData
-                };
-                
-                const result = await apiPost(payload);
-                pbar.style.width = "100%";
-                if (result.status === 'success') { msg.className = "status-message success"; msg.textContent = "✅ Uploaded successfully!"; e.target.reset(); document.getElementById('upFileList').innerHTML = ''; }
-                else throw new Error(result.message);
-            } catch (err) { msg.className = "status-message error"; msg.textContent = "❌ Failed: " + err.message; }
-            finally { setTimeout(() => { btn.disabled = false; pb.style.display = "none"; }, 3000); }
-        });
-
-        // ================== ADMIN LOGIC ==================
-        function populateAdminData() {
-            document.getElementById('statCourses').innerText = globalData.courses.length;
-            document.getElementById('statGroups').innerText = globalData.groups.length;
-            document.getElementById('statMaterials').innerText = globalData.materials.length;
-
-            document.querySelector('#coursesTable tbody').innerHTML = globalData.courses.map(c => `<tr><td>${c['Name']}</td><td>${c['Number of Sessions']}</td></tr>`).join('');
-            document.querySelector('#groupsTable tbody').innerHTML = globalData.groups.map(g => `<tr><td>${g['Group Code']}</td><td>${g['Course']}</td></tr>`).join('');
-            document.querySelector('#materialsTable tbody').innerHTML = globalData.materials.map(m => `<tr><td>${m['Title']}</td><td>${m['Course']}</td><td>${new Date(m['Upload Date']).toLocaleDateString()}</td></tr>`).join('');
-
-            const cOpts = '<option value="">Select Course...</option>' + globalData.courses.map(c => `<option value="${c['Name']}">${c['Name']}</option>`).join('');
-            document.getElementById('groupCourse').innerHTML = cOpts;
-            document.getElementById('matCourse').innerHTML = cOpts;
-            document.getElementById('trackCourse').innerHTML = cOpts;
+            showLoader("Saving...");
+            let data = {
+                Name: document.getElementById('courseName').value,
+                Code: document.getElementById('courseCode').value,
+                Sessions: document.getElementById('courseSessions').value,
+                Status: "Active"
+            };
+            await apiCall({ action: "saveCourse", data: data });
+            closeModal('courseModal');
+            loadAdminData();
         }
 
-        async function addCourse(e) {
+        async function saveGroup(e) {
             e.preventDefault();
-            await apiPost({ action: 'addCourse', data: { "Name": document.getElementById('courseName').value, "Number of Sessions": document.getElementById('courseSessions').value } });
-            e.target.reset(); toggleForm('courseForm'); await fetchData();
+            showLoader("Saving...");
+            let data = {
+                Name: document.getElementById('groupName').value,
+                Code: document.getElementById('groupCode').value,
+                CourseID: document.getElementById('groupCourseId').value,
+                Status: "Active"
+            };
+            await apiCall({ action: "saveGroup", data: data });
+            closeModal('groupModal');
+            loadAdminData();
         }
 
-        async function addGroup(e) {
+        async function saveSession(e) {
             e.preventDefault();
-            await apiPost({ action: 'addGroup', data: { "Group Code": document.getElementById('groupCode').value, "Course": document.getElementById('groupCourse').value } });
-            e.target.reset(); toggleForm('groupForm'); await fetchData();
+            showLoader("Saving...");
+            let data = {
+                CourseID: document.getElementById('sessionCourseId').value,
+                GroupID: document.getElementById('sessionGroupId').value,
+                LessonTitle: document.getElementById('sessionTitle').value,
+                SessionNumber: document.getElementById('sessionNumber').value,
+                Status: "Active"
+            };
+            await apiCall({ action: "saveSession", data: data });
+            closeModal('sessionModal');
+            loadAdminData();
         }
 
-        function populateMatGroups() {
-            const cName = document.getElementById('matCourse').value;
-            const groups = globalData.groups.filter(g => g['Course'] === cName);
-            document.getElementById('matGroupCheckboxes').innerHTML = groups.map(g => `<label class="checkbox-item"><input type="checkbox" value="${g['Group Code']}"> ${g['Group Code']}</label>`).join('');
+        async function deleteRecord(type, id) {
+            if(!confirm("Are you sure?")) return;
+            showLoader("Deleting...");
+            await apiCall({ action: `delete${type.slice(0,-1)}`, id: id }); // remove 's'
+            loadAdminData();
         }
 
-        // Show selected material files
-        const matFile = document.getElementById('matFile');
-        matFile.addEventListener('change', () => { document.getElementById('matFileList').innerHTML = Array.from(matFile.files).map(f => `<li>${f.name}</li>`).join(''); });
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
 
         async function uploadMaterial(e) {
             e.preventDefault();
-            if (!matFile.files.length) return;
+            showLoader("Uploading Material...");
             
-            const btn = document.getElementById('matSubmitBtn'); btn.disabled = true; btn.innerText = "Uploading...";
+            let fileInput = document.getElementById('matFile');
+            let base64 = await getBase64(fileInput.files[0]);
             
-            const checkboxes = document.querySelectorAll('#matGroupCheckboxes input:checked');
-            const groups = Array.from(checkboxes).map(cb => cb.value);
+            let groupSelect = document.getElementById('matGroups');
+            let selectedGroups = Array.from(groupSelect.selectedOptions).map(opt => opt.value);
+            
+            let cid = document.getElementById('matCourseId').value;
+            let course = adminDataCache.courses.find(c => c.ID === cid);
 
-            try {
-                const filesData = await Promise.all(Array.from(matFile.files).map(async f => ({
-                    filename: f.name,
-                    mimeType: f.type || "application/octet-stream",
-                    base64: await getBase64(f),
-                    size: f.size
-                })));
+            let data = {
+                Name: document.getElementById('matName').value,
+                CourseID: cid,
+                CourseName: course ? course.Name : 'General',
+                GroupIDs: selectedGroups,
+                file: {
+                    filename: fileInput.files[0].name,
+                    mimeType: fileInput.files[0].type,
+                    base64: base64
+                }
+            };
+            
+            await apiCall({ action: "uploadMaterial", data: data });
+            closeModal('materialModal');
+            loadAdminData();
+        }
 
-                await apiPost({
-                    action: 'uploadMaterial',
-                    data: {
-                        courseName: document.getElementById('matCourse').value,
-                        groups: groups,
-                        files: filesData
-                    }
-                });
-                
-                e.target.reset(); toggleForm('materialForm'); document.getElementById('matFileList').innerHTML = ''; await fetchData();
-            } catch(err) {
-                alert("Error uploading materials: " + err);
+
+        // ================= STUDENT LOGIC =================
+        function navigateStudent(sectionId) {
+            document.querySelectorAll('.student-section').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('#student-view .nav-item').forEach(el => el.classList.remove('active'));
+            if(event) event.currentTarget.classList.add('active');
+            document.getElementById(sectionId).style.display = 'block';
+            
+            let titles = {
+                'student-home': 'Welcome',
+                'student-materials': 'Study Materials',
+                'student-assignments': 'Submit Assignment',
+                'student-python': 'Python IDE'
+            };
+            document.getElementById('student-page-title').innerText = titles[sectionId];
+            
+            if(sectionId === 'student-python' && !pythonEditor) {
+                initPythonEditor();
             }
-            btn.disabled = false; btn.innerText = "Upload Material";
         }
 
-        function populateTrackGroups() {
-            const cName = document.getElementById('trackCourse').value;
-            const groups = globalData.groups.filter(g => g['Course'] === cName);
-            document.getElementById('trackGroup').innerHTML = '<option value="">Select Group</option>' + groups.map(g => `<option value="${g['Group Code']}">${g['Group Code']}</option>`).join('');
+        async function loadStudentData() {
+            let code = document.getElementById('studentGroupCode').value.trim();
+            if(!code) return showToast("Enter Group Code", "error");
+            
+            showLoader("Loading Group Data...");
+            try {
+                const res = await apiCall({ action: "getStudentData", groupCode: code });
+                studentDataCache = res.data;
+                document.getElementById('student-active-group').innerText = `Group: ${studentDataCache.group.Name} | Course: ${studentDataCache.course.Name}`;
+                
+                // Show menus
+                document.getElementById('nav-student-materials').style.display = 'flex';
+                document.getElementById('nav-student-assignments').style.display = 'flex';
+                
+                // If course is Python, show Python editor
+                if(studentDataCache.course.Name.toLowerCase().includes('python')) {
+                    document.getElementById('nav-student-python').style.display = 'flex';
+                }
+                
+                renderStudentUI();
+                navigateStudent('student-materials');
+                document.getElementById('nav-student-materials').classList.add('active');
+                
+            } catch(e) {}
+            hideLoader();
         }
 
-        async function addTracking(e) {
+        function renderStudentUI() {
+            // Materials
+            document.getElementById('studentMaterialsList').innerHTML = studentDataCache.materials.map(m => `
+                <div class="material-card">
+                    <h3 style="color:var(--brand-blue)">${m.Name}</h3>
+                    <p style="color:var(--text-muted); font-size:0.9rem;">Type: ${m.Type}</p>
+                    <a href="${m.DriveUrl}" target="_blank" class="btn btn-outline" style="text-decoration:none; margin-top:10px;">View / Download</a>
+                </div>
+            `).join('');
+            if(studentDataCache.materials.length === 0) {
+                document.getElementById('studentMaterialsList').innerHTML = `<p>No materials assigned yet.</p>`;
+            }
+            
+            // Assignment Session Dropdown
+            document.getElementById('uploadSession').innerHTML = studentDataCache.sessions.map(s => 
+                `<option value="${s.SessionNumber}">Session ${s.SessionNumber} - ${s.LessonTitle}</option>`
+            ).join('');
+        }
+
+        async function handleStudentUpload(e) {
             e.preventDefault();
-            await apiPost({ action: 'addTracking', data: { "Course": document.getElementById('trackCourse').value, "Group": document.getElementById('trackGroup').value, "Session Number": document.getElementById('trackSessionNo').value, "Session Topic": document.getElementById('trackTopic').value, "Homework": document.getElementById('trackHomework').value, "Date": new Date().toLocaleDateString() } });
-            e.target.reset(); alert("Tracking saved!"); await fetchData();
+            showLoader("Uploading Assignment (Please wait...)");
+            
+            try {
+                let fileInput = document.getElementById('uploadFiles');
+                let filesData = [];
+                for(let i=0; i<fileInput.files.length; i++) {
+                    let b64 = await getBase64(fileInput.files[i]);
+                    filesData.push({
+                        filename: fileInput.files[i].name,
+                        mimeType: fileInput.files[i].type || "application/octet-stream",
+                        base64: b64
+                    });
+                }
+                
+                let payload = {
+                    action: "submitAssignment",
+                    studentName: document.getElementById('uploadStudentName').value,
+                    courseName: studentDataCache.course.Name,
+                    groupName: studentDataCache.group.Name,
+                    sessionName: "Session " + document.getElementById('uploadSession').value,
+                    files: filesData
+                };
+                
+                await apiCall(payload);
+                showToast("Assignment submitted successfully!", "success");
+                document.getElementById('studentUploadForm').reset();
+                document.getElementById('uploadFileList').innerHTML = "";
+            } catch(e) {}
+            hideLoader();
         }
 
-        // ================== PYTHON ==================
-        async function openPythonEditor() {
-            showSection('pythonEditor');
-            if (!pyodideInstance) { document.getElementById('pyodideStatus').innerText = 'Initializing...'; pyodideInstance = await loadPyodide(); document.getElementById('pyodideStatus').innerText = 'Ready'; document.getElementById('pyodideStatus').style.color = 'var(--success)'; }
+        // ================= PYTHON EDITOR (Pyodide) =================
+        async function initPythonEditor() {
+            pythonEditor = CodeMirror(document.getElementById('editor-container'), {
+                value: "# Write your Python code here\nprint('Hello Future Academy!')\n",
+                mode: "python",
+                theme: "dracula",
+                lineNumbers: true,
+                indentUnit: 4
+            });
+
+            if (!pyodideInstance) {
+                document.getElementById('console-output').innerText = "Loading Python engine... Please wait.";
+                try {
+                    pyodideInstance = await loadPyodide();
+                    document.getElementById('console-output').innerText = "Python engine ready.\n";
+                } catch(e) {
+                    document.getElementById('console-output').innerText = "Failed to load Python engine.";
+                }
+            }
         }
+
         async function runPython() {
-            if (!pyodideInstance) return;
-            const output = document.getElementById('pythonOutput'); output.innerHTML = '';
-            pyodideInstance.setStdout({ batched: (str) => { output.innerHTML += str + '<br>'; } });
-            try { await pyodideInstance.runPythonAsync(document.getElementById('pythonCode').value); } 
-            catch (err) { output.innerHTML += `<span style="color:red">${err}</span>`; }
+            if(!pyodideInstance) {
+                showToast("Python is still loading", "error");
+                return;
+            }
+            let code = pythonEditor.getValue();
+            let consoleDiv = document.getElementById('console-output');
+            consoleDiv.innerText = "Running...\n";
+            
+            // Redirect stdout to UI
+            pyodideInstance.runPython(`
+import sys
+import io
+sys.stdout = io.StringIO()
+            `);
+            
+            try {
+                await pyodideInstance.runPythonAsync(code);
+                let output = pyodideInstance.runPython("sys.stdout.getvalue()");
+                consoleDiv.innerText = output;
+            } catch (err) {
+                consoleDiv.innerText = err;
+            }
         }
-        function downloadCode() {
-            const blob = new Blob([document.getElementById('pythonCode').value], { type: "text/x-python" });
-            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "script.py"; a.click();
-        }
+
     </script>
 </body>
 </html>
